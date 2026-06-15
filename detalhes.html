@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Produto - Cotton Candy B.B</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .detalhe-container { max-width: 1000px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 30px; display: flex; flex-wrap: wrap; gap: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .detalhe-left { flex: 1; min-width: 300px; }
+        .detalhe-right { flex: 1.2; min-width: 300px; display: flex; flex-direction: column; gap: 20px; }
+        .btn-voltar { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #6db3f8; font-weight: bold; }
+        #loading { text-align: center; padding: 100px; font-size: 1.5rem; color: #493f64; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo"><img src="img/logo.png" class="logo-img"></div>
+        <nav><ul><li><a href="index.html">Home</a></li><li><a href="produtos.html">Produtos</a></li></ul></nav>
+    </header>
+
+    <main id="conteudo-produto" style="display: none;">
+        <section class="detalhe-container">
+            <div class="detalhe-left">
+                <a href="javascript:history.back()" class="btn-voltar">← Voltar para a loja</a>
+                <div class="img-container" id="foto-principal">
+                    <!-- Imagem via JS -->
+                </div>
+                <div class="modal-thumbnails" id="galeria-fotos"></div>
+            </div>
+            <div class="detalhe-right" id="info-produto">
+                <!-- Info via JS -->
+            </div>
+        </section>
+    </main>
+
+    <div id="loading">Carregando detalhes do produto...</div>
+
+    <script src="script.js"></script>
+    <script>
+        // Esta lógica roda apenas nesta página de detalhes
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const idParaBuscar = params.get('id');
+            
+            if (idParaBuscar) {
+                // Chama a função que criaremos no script.js para buscar os dados
+                setTimeout(() => {
+                    if (typeof window.carregarDadosProduto === 'function') {
+                        window.carregarDadosProduto(idParaBuscar);
+                    }
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>

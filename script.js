@@ -1,6 +1,22 @@
 // Espera todo o HTML ser carregado antes de executar o JavaScript
 document.addEventListener('DOMContentLoaded', () => {
     
+    // --- 0. GERAÇÃO AUTOMÁTICA DE IDS (DEEP LINKING) ---
+    // Percorre os produtos e cria IDs baseados na "Ref" escrita no título.
+    // Isso permite links como: seudominio.com/produtos.html#ref05
+    const produtosParaId = document.querySelectorAll('.card, .product-card');
+    produtosParaId.forEach((card, index) => {
+        if (!card.id) { // Só gera se o card ainda não tiver um ID manual
+            const titulo = card.querySelector('h2, h3')?.innerText || "";
+            const match = titulo.match(/ref\.?\s*(\d+)/i); // Procura por "Ref" + números
+            if (match) {
+                card.id = `ref${match[1]}`.toLowerCase(); // Ex: transforma "Ref 02" em id="ref02"
+            } else {
+                card.id = `prod-${index}`; // Fallback caso não tenha "Ref" no título
+            }
+        }
+    });
+
     // --- 1. CONFIGURAÇÃO INICIAL DO CARRINHO ---
     
     // Tenta buscar o carrinho salvo no navegador (localStorage). Se não existir, começa com uma lista vazia [].
@@ -296,125 +312,134 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(el);
     });
 
-    // --- 10. LÓGICA DO MODAL DE DETALHES ---
-    const modal = document.getElementById('modal-produto');
+    // --- 10. LÓGICA DE REDIRECIONAMENTO (PARA detalhes.html) ---
+    // Em dispositivos móveis e desktop, abrir uma nova página melhora a navegação.
     const cards = document.querySelectorAll('.card, .product-card');
-
-    // --- 10.5 LUPA AUTOMÁTICA EM TODOS OS PRODUTOS ---
-    // Envolve as imagens em um container para a lupa funcionar sem precisar editar todo o HTML
-    document.querySelectorAll('.card > img, .product-card > img').forEach(img => {
-        if (!img.parentElement.classList.contains('img-container')) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'img-container';
-            img.parentNode.insertBefore(wrapper, img);
-            wrapper.appendChild(img);
-            img.classList.add('primary-img');
+    
+    const irParaDetalhes = (card) => {
+        const id = card.id;
+        if (id) {
+            // Redireciona para a página de detalhes passando o ID do produto
+            window.location.href = `detalhes.html?id=${id}`;
         }
-    });
-
-    // Função global para trocar a imagem no modal
-    window.changeModalImage = (src, btn) => {
-        const img = document.getElementById('main-modal-img');
-        if (img) img.src = src;
-        
-        // Atualiza qual botão está com o visual "ativo"
-        const buttons = document.querySelectorAll('.thumb-btn');
-        buttons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    };
-
-    const abrirModal = (card) => {
-        if (!modal) return;
-        
-        const imgPrimaria = card.querySelector('.primary-img')?.src || card.querySelector('img')?.src;
-        const imgSecundaria = card.querySelector('.secondary-img')?.src;
-        const titulo = card.querySelector('h2, h3')?.innerText;
-        const categoria = card.querySelector('.categoria-tag')?.innerText;
-        const descricao = card.querySelector('p:not(.estoque):not(.preco)')?.innerText;
-        const preco = card.querySelector('.preco')?.innerText;
-        const linkML = card.querySelector('button')?.getAttribute('data-link');
-
-        // Cria o HTML da galeria com botões se houver uma segunda imagem
-        let leftContent = `
-            <div class="img-container">
-                <img src="${imgPrimaria}" class="modal-img primary-img" id="main-modal-img">
-            </div>
-        `;
-        if (imgSecundaria) {
-            leftContent += `
-                <div class="modal-thumbnails">
-                    <button class="thumb-btn active" onclick="changeModalImage('${imgPrimaria}', this)">Foto 1</button>
-                    <button class="thumb-btn" onclick="changeModalImage('${imgSecundaria}', this)">Foto 2</button>
-                </div>
-            `;
-        }
-        modal.querySelector('.modal-left').innerHTML = leftContent;
-
-        modal.querySelector('.modal-right').innerHTML = `
-            <span class="categoria-tag">${categoria}</span>
-            <h2>${titulo}</h2>
-            <p style="white-space: pre-line;">${descricao}</p>
-            <p class="preco" style="font-size: 1.8rem;">${preco}</p>
-            <button onclick="window.open('${linkML}', '_blank')" class="btn-finalizar">Comprar no Mercado Livre</button>
-        `;
-
-        modal.style.display = 'flex';
     };
 
     cards.forEach(card => {
         card.style.cursor = 'pointer';
-        card.addEventListener('click', () => abrirModal(card));
+        card.addEventListener('click', () => irParaDetalhes(card));
     });
 
-    window.fecharModal = () => {
-        if (modal) modal.style.display = 'none';
+    // --- 11. BUSCADOR DINÂMICO DE DADOS (PARA detalhes.html) ---
+    window.carregarDadosProduto = async (id) => {
+        let cardSource = document.getElementById(id);
+
+        // Se não estiver na página atual, busca os dados no arquivo produtos.html
+        if (!cardSource) {
+            try {
+                const response = await fetch('produtos.html');
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Tenta achar pelo ID físico no HTML
+                cardSource = doc.getElementById(id);
+
+                // Se não achar (IDs gerados por JS), procura percorrendo os cards do arquivo
+                if (!cardSource) {
+                    const todosCards = doc.querySelectorAll('.card, .product-card');
+                    cardSource = Array.from(todosCards).find(c => {
+                        const t = c.querySelector('h2, h3')?.innerText || "";
+                        const m = t.match(/ref\.?\s*(\d+)/i);
+                        const generatedId = m ? `ref${m[1]}`.toLowerCase() : "";
+                        return generatedId === id;
+                    });
+                }
+            } catch (e) { console.error("Erro ao carregar banco de dados", e); }
+        }
+
+        if (!cardSource) {
+            const loadMsg = document.getElementById('loading');
+            if (loadMsg) loadMsg.innerText = "Produto não encontrado.";
+            return;
+        }
+
+        const imgPrimaria = cardSource.querySelector('.primary-img')?.src || cardSource.querySelector('img')?.src;
+        const imgSecundaria = cardSource.querySelector('.secondary-img')?.src;
+        const titulo = cardSource.querySelector('h2, h3')?.innerText;
+        const categoria = cardSource.querySelector('.categoria-tag')?.innerText;
+        const descricao = cardSource.querySelector('p:not(.estoque):not(.preco)')?.innerText || "";
+        const preco = cardSource.querySelector('.preco')?.innerText;
+        const linkML = cardSource.querySelector('button')?.getAttribute('data-link');
+
+        // Tenta encontrar a informação de Cor na descrição (ex: "Cor: Rosa")
+        const corMatch = descricao.match(/Cor:\s*([^\n\r]+)/i);
+        const corParaExibir = corMatch ? corMatch[1].trim() : titulo;
+
+        // Preenche os campos da página detalhes.html
+        const fotoCont = document.getElementById('foto-principal');
+        if (fotoCont) fotoCont.innerHTML = `<div class="img-container"><img src="${imgPrimaria}" class="modal-img primary-img" id="main-modal-img"></div>`;
+        
+        const galeCont = document.getElementById('galeria-fotos');
+        if (galeCont && imgSecundaria) {
+            galeCont.innerHTML = `
+                <button class="thumb-btn active" onclick="document.getElementById('main-modal-img').src='${imgPrimaria}'">Foto 1</button>
+                <button class="thumb-btn" onclick="document.getElementById('main-modal-img').src='${imgSecundaria}'">Foto 2</button>
+            `;
+        }
+
+        const infoCont = document.getElementById('info-produto');
+        if (infoCont) {
+            infoCont.innerHTML = `
+                <span class="categoria-tag">${categoria}</span>
+                <h2>${titulo}</h2>
+                <p style="white-space: pre-line; color: #666;">${descricao}</p>
+                <p class="preco" style="font-size: 2.5rem; color: #2e5e8f;">${preco}</p>
+                <div class="aviso-variacao">
+                    <strong>Atenção:</strong> Este link possui várias variações. Ao abrir o site, selecione a <strong>cor</strong> correspondente: <strong>${corParaExibir}</strong>.
+                </div>
+                <button onclick="window.open('${linkML}', '_blank')" class="btn-finalizar" style="max-width: 400px;">Comprar Agora</button>
+            `;
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('conteudo-produto').style.display = 'block';
     };
 
-    // Fecha o modal se clicar fora dele
-    window.onclick = (event) => {
-        if (event.target == modal) fecharModal();
-    };
-
-    // --- 11. LÓGICA DA LUPA NOS PRODUTOS ---
-
-    // Faz a lupa seguir o movimento do mouse e do toque (mobile)
+    // --- 12. LÓGICA DA LUPA (RE-IMPLEMENTADA PARA SER GLOBAL) ---
     const atualizarPosicaoLupa = (e) => {
         const isTouch = e.type.startsWith('touch');
-        const clientX = isTouch ? (e.touches[0] ? e.touches[0].clientX : e.changedTouches[0].clientX) : e.clientX;
-        const clientY = isTouch ? (e.touches[0] ? e.touches[0].clientY : e.changedTouches[0].clientY) : e.clientY;
-        
-        // Encontra o container mais próximo
+        const clientX = isTouch ? (e.touches[0]?.clientX || e.changedTouches[0]?.clientX) : e.clientX;
+        const clientY = isTouch ? (e.touches[0]?.clientY || e.changedTouches[0]?.clientY) : e.clientY;
         let container = e.target.closest('.img-container');
-        
-        // Se estiver no modal, podemos desabilitar ou ajustar
-
         if (container) {
             const rect = container.getBoundingClientRect();
             const x = clientX - rect.left;
             const y = clientY - rect.top;
-            
             container.style.setProperty('--mouse-x', `${x}px`);
             container.style.setProperty('--mouse-y', `${y}px`);
-
-            // Calcula a porcentagem para o transform-origin (Zoom no ponto exato)
-            const xPercent = (x / rect.width) * 100;
-            const yPercent = (y / rect.height) * 100;
             const img = container.querySelector('img');
-            if (img) img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
-
-            // No mobile, adicionamos uma classe para mostrar a lupa apenas durante o toque
-            if (e.type === 'touchstart' || e.type === 'touchmove') {
-                container.classList.add('lupa-ativa');
-            } else if (e.type === 'touchend') {
-                container.classList.remove('lupa-ativa');
+            if (img) img.style.transformOrigin = `${(x/rect.width)*100}% ${(y/rect.height)*100}%`;
+            if (isTouch) {
+                if (e.type === 'touchstart' || e.type === 'touchmove') container.classList.add('lupa-ativa');
+                else if (e.type === 'touchend') container.classList.remove('lupa-ativa');
             }
         }
     };
 
     document.addEventListener('mousemove', atualizarPosicaoLupa);
-    // Adicionamos eventos de início e fim de toque para o mobile
     document.addEventListener('touchstart', atualizarPosicaoLupa, { passive: true });
     document.addEventListener('touchmove', atualizarPosicaoLupa, { passive: true });
     document.addEventListener('touchend', atualizarPosicaoLupa, { passive: true });
 
+    // --- 13. REDIRECIONAMENTO DE LINKS DIRETOS ---
+    const verificarLinkDireto = () => {
+        const hash = window.location.hash.substring(1).toLowerCase();
+        if (hash && !window.location.pathname.includes('detalhes.html')) {
+            window.location.href = `detalhes.html?id=${hash}`;
+        }
+    };
+
+    // Monitora tanto o carregamento quanto a mudança de hash (links na mesma página)
+    window.addEventListener('load', verificarLinkDireto);
+    window.addEventListener('hashchange', verificarLinkDireto);
 });

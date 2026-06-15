@@ -40,8 +40,8 @@ header {
 
 /* --- LOGO --- */
 .logo-img {
-    height: 120px; /* Tamanho ajustado para equilíbrio visual */
-    width: 120px;
+    height: 160px; /* Tamanho aumentado para maior visibilidade no desktop */
+    width: 160px;
     border-radius: 50%;
     object-fit: cover;
     transition: transform 0.3s ease;
@@ -120,7 +120,7 @@ nav li {
     overflow-x: auto;
     white-space: nowrap;
     position: sticky;
-    top: 140px; /* Ajustado para a altura real do header desktop (Logo 120px + paddings) */
+    top: 180px; /* Ajustado para a nova altura do header desktop (Logo 160px + paddings) */
     z-index: 999;
     -webkit-overflow-scrolling: touch; /* Rolagem suave no iOS */
     scrollbar-width: none; /* Esconde barra no Firefox */
@@ -193,10 +193,10 @@ nav li {
     transform: translateY(0);
 }
 
-/* Opcional: Ajuste para celulares */
+
 @media (max-width: 600px) {
     .hero-content h1 {
-        font-size: 1.5rem; /* Título ainda menor em telas pequenas */
+        font-size: 1.5rem; 
     }
 }
 /* --- CONTAINER DO CARROSSEL --- */
@@ -437,6 +437,34 @@ nav li {
 .modal-left { flex: 1; min-width: 300px; }
 .modal-right { flex: 1.2; min-width: 300px; display: flex; flex-direction: column; gap: 15px; }
 .modal-img { width: 100%; border-radius: 15px; }
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-copy-link {
+    background: #f0f8ff;
+    color: #50a0f0;
+    border: 2px solid #50a0f0;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.aviso-variacao {
+    background: #fff5f5;
+    border-left: 4px solid #ff6b6b;
+    padding: 12px;
+    font-size: 0.85rem;
+    color: #c92a2a;
+    border-radius: 10px;
+    margin: 10px 0;
+    line-height: 1.4;
+}
 
 /* Garante que a lupa funcione dentro do modal também */
 .modal-left .img-container {
@@ -993,8 +1021,8 @@ footer {
     }
 
     .logo-img {
-        height: 70px;
-        width: 70px;
+        height: 100px; /* Tamanho aumentado no mobile */
+        width: 100px;
     }
 
     #btn-mobile {
@@ -1012,8 +1040,8 @@ footer {
         background: #ffffff;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         padding: 20px 0;
-        height: calc(100vh - 86px);
-        top: 86px;
+        height: calc(100vh - 116px); /* Ajustado para a nova altura do header mobile */
+        top: 116px;
         z-index: 1000;
     }
 
@@ -1074,7 +1102,7 @@ footer {
     }
 
     .filter-bar {
-        top: 86px; 
+        top: 116px; /* Ajustado para a nova altura do header mobile */
         padding: 5px 5% 5px 0%; /* Ajusta o padding para o mobile */
         padding: 5px 5% 5px 5%; /* Removido padding superior no mobile (era 15px) */
         background: #fff;
